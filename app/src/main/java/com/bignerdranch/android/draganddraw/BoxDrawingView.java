@@ -4,6 +4,8 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.PointF;
+import android.os.Bundle;
+import android.os.Parcelable;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
@@ -12,7 +14,9 @@ import android.view.View;
 import androidx.annotation.Nullable;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
 
 public class BoxDrawingView extends View {
     private static final String TAG = "BoxDrawingView";
@@ -37,6 +41,36 @@ public class BoxDrawingView extends View {
         // Paint the background off-white
         mBackgroundPaint = new Paint();
         mBackgroundPaint.setColor(0xfff8efe0);
+    }
+
+    @Nullable
+    @Override
+    protected Parcelable onSaveInstanceState() {
+        Bundle bundle = new Bundle();
+        ListIterator<Box> iterator = mBoxen.listIterator();
+        while(iterator.hasNext()){
+            bundle.putSerializable(
+                    String.valueOf(iterator.nextIndex()), iterator.next()
+            );
+            Log.i(TAG, "onSaveInstanceState: " + iterator.nextIndex());
+        }
+        bundle.putInt("length", mBoxen.size());
+        bundle.putParcelable("superState", super.onSaveInstanceState());
+        return bundle;
+    }
+
+    @Override
+    protected void onRestoreInstanceState(Parcelable state) {
+        if (state instanceof Bundle){
+            Bundle bundle = (Bundle) state;
+
+            for(int i = 0;i < bundle.getInt("length");i++){
+                mBoxen.add((Box) bundle.getSerializable(String.valueOf(i)));
+            }
+
+            state = bundle.getParcelable("superState");
+        }
+        super.onRestoreInstanceState(state);
     }
 
     @Override
