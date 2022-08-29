@@ -14,7 +14,6 @@ import android.view.View;
 import androidx.annotation.Nullable;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 
@@ -52,7 +51,6 @@ public class BoxDrawingView extends View {
             bundle.putSerializable(
                     String.valueOf(iterator.nextIndex()), iterator.next()
             );
-            Log.i(TAG, "onSaveInstanceState: " + iterator.nextIndex());
         }
         bundle.putInt("length", mBoxen.size());
         bundle.putParcelable("superState", super.onSaveInstanceState());
@@ -84,15 +82,30 @@ public class BoxDrawingView extends View {
             float bottom = Math.max(box.getOrigin().y, box.getCurrent().y);
 
             canvas.drawRect(left, top, right, bottom, mBoxPaint);
+            if (mCurrentBox.getRotation() != null){
+                canvas.rotate(mCurrentBox.getRotation().floatValue());
+                canvas.restore();
+            }
         }
     }
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        PointF current = new PointF(event.getX(), event.getY());
-        String action = "";
 
-        switch (event.getAction()){
+        PointF current = null;
+        PointF second = null;
+        String action = "";
+        for (int i=0;i<event.getPointerCount();i++) {
+            if(event.getPointerId(i)==0){
+                Log.i(TAG, "onTouchEvent: 1");
+                current = new PointF(event.getX(i), event.getY(i));
+            }
+            if(event.getPointerId(i)==1){
+                Log.i(TAG, "onTouchEvent: 2");
+                second = new PointF(event.getX(i), event.getY(i));
+            }
+        }
+        switch (event.getActionMasked()){
             case MotionEvent.ACTION_DOWN:
                 action = "ACTION_DOWN";
                 // Reset drawing state
@@ -101,10 +114,21 @@ public class BoxDrawingView extends View {
                 break;
             case MotionEvent.ACTION_MOVE:
                 action = "ACTION_MOVE";
-                if (mCurrentBox != null){
+                if (current != null){
                     mCurrentBox.setCurrent(current);
-                    invalidate();
+                    Log.i(TAG, "second: " + current.x + " " + current.y);
                 }
+                if (second != null){
+                    PointF boxOrigin = mCurrentBox.getOrigin();
+                    PointF pointerOrigin = mCurrentBox.getPointerOrigin();
+                    double slope1 = (boxOrigin.y-pointerOrigin.y) / (boxOrigin.x-pointerOrigin.x);
+                    double slope2 = (boxOrigin.y-second.y) / (boxOrigin.x-second.x);
+                    double rot = Math.atan2(slope2-slope1, 1+slope1*slope2);
+                    mCurrentBox.setRotation(rot);
+                    Log.i(TAG, "rotation: " + Math.toDegrees(rot));
+                    Log.i(TAG, "second: " + second.x + " " + second.y);
+                }
+                invalidate();
                 break;
             case MotionEvent.ACTION_UP:
                 action = "ACTION_UP";
@@ -114,9 +138,18 @@ public class BoxDrawingView extends View {
                 action = "ACTION_CANCEL";
                 mCurrentBox = null;
                 break;
+            case MotionEvent.ACTION_POINTER_UP:
+                action = "ACTION_POINTER_UP";
+
+                break;
+            case MotionEvent.ACTION_POINTER_DOWN:
+                action = "ACTION_POINTER_DOWN";
+                mCurrentBox.setPointerOrigin(second);
+
+                break;
         }
 
-        Log.i(TAG, action + " at x=" + current.x + ", y=" + current.y);
+        //Log.i(TAG, action + " at x=" + current.x + ", y=" + current.y);
 
         return true;
     }
