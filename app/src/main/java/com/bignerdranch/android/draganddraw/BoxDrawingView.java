@@ -81,11 +81,19 @@ public class BoxDrawingView extends View {
             float top = Math.min(box.getOrigin().y, box.getCurrent().y);
             float bottom = Math.max(box.getOrigin().y, box.getCurrent().y);
 
-            canvas.drawRect(left, top, right, bottom, mBoxPaint);
-            if (mCurrentBox.getRotation() != null){
-                canvas.rotate(mCurrentBox.getRotation().floatValue());
+            if (box.getRotation() != null){
+                double angle = box.getRotation();
+                float px = (box.getOrigin().x+box.getCurrent().x)/2;
+                float py = (box.getOrigin().y+box.getCurrent().y)/2;
+                canvas.save();
+                canvas.rotate((float) angle, px, py);
+                canvas.drawRect(left, top, right, bottom, mBoxPaint);
                 canvas.restore();
+            }else {
+                canvas.drawRect(left, top, right, bottom, mBoxPaint);
             }
+
+
         }
     }
 
@@ -97,11 +105,9 @@ public class BoxDrawingView extends View {
         String action = "";
         for (int i=0;i<event.getPointerCount();i++) {
             if(event.getPointerId(i)==0){
-                Log.i(TAG, "onTouchEvent: 1");
                 current = new PointF(event.getX(i), event.getY(i));
             }
             if(event.getPointerId(i)==1){
-                Log.i(TAG, "onTouchEvent: 2");
                 second = new PointF(event.getX(i), event.getY(i));
             }
         }
@@ -116,17 +122,15 @@ public class BoxDrawingView extends View {
                 action = "ACTION_MOVE";
                 if (current != null){
                     mCurrentBox.setCurrent(current);
-                    Log.i(TAG, "second: " + current.x + " " + current.y);
                 }
                 if (second != null){
                     PointF boxOrigin = mCurrentBox.getOrigin();
                     PointF pointerOrigin = mCurrentBox.getPointerOrigin();
-                    double slope1 = (boxOrigin.y-pointerOrigin.y) / (boxOrigin.x-pointerOrigin.x);
-                    double slope2 = (boxOrigin.y-second.y) / (boxOrigin.x-second.x);
-                    double rot = Math.atan2(slope2-slope1, 1+slope1*slope2);
+                    double slope1 = Math.atan2(pointerOrigin.y-boxOrigin.y, pointerOrigin.x-boxOrigin.x);
+                    double slope2 = Math.atan2(second.y-boxOrigin.y, second.x-boxOrigin.x);
+                    double rot = Math.toDegrees(slope2-slope1);
+                    if (rot < 0) rot += 360;
                     mCurrentBox.setRotation(rot);
-                    Log.i(TAG, "rotation: " + Math.toDegrees(rot));
-                    Log.i(TAG, "second: " + second.x + " " + second.y);
                 }
                 invalidate();
                 break;
@@ -149,7 +153,7 @@ public class BoxDrawingView extends View {
                 break;
         }
 
-        //Log.i(TAG, action + " at x=" + current.x + ", y=" + current.y);
+        Log.i(TAG, action);
 
         return true;
     }
